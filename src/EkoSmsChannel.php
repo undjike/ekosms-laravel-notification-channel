@@ -17,18 +17,18 @@ class EkoSmsChannel
      *
      * @param mixed $notifiable
      * @param Notification $notification
+     * @return array
      * @throws CouldNotSendNotification
      * @throws GuzzleException
-     * @throws Exception
      */
-    public function send($notifiable, Notification $notification): void
+    public function send($notifiable, Notification $notification): array
     {
         if (!$recipient = $notifiable->routeNotificationFor('EkoSms')) {
-            throw new CouldNotSendNotification('Your notifiable instance does not have function routeNotificationForEkoSms.');
+            throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Your notifiable instance does not have function routeNotificationForEkoSms.');
         }
 
         if (!method_exists($notification, 'toEkoSms')) {
-            throw new CouldNotSendNotification('Your need to define the toEkoSms method on your notification for it to be sent.');
+            throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Your need to define the toEkoSms method on your notification for it to be sent.');
         }
 
         $message = $notification->toEkoSms($notifiable);
@@ -39,15 +39,15 @@ class EkoSmsChannel
         }
 
         if (!$message instanceof EkoSmsMessage) {
-            throw new CouldNotSendNotification('Required string or EkoSmsMessage instance as the return type of toEkoSms.');
+            throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Required string or EkoSmsMessage instance as the return type of toEkoSms.');
         }
 
         if (empty(trim($message->getBody()))) {
-            throw new CouldNotSendNotification('Can\'t send a message with an empty body.');
+            throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Can\'t send a message with an empty body.');
         }
 
         if (!$recipient) {
-            throw new CouldNotSendNotification('Can\'t send a message with no recipient.');
+            throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Can\'t send a message with no recipient.');
         }
 
         if (is_string($recipient)) {
@@ -55,12 +55,12 @@ class EkoSmsChannel
         }
 
         if (!is_array($recipient)) {
-            throw new CouldNotSendNotification('Expected string or array as recipient.');
+            throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Expected string or array as recipient.');
         }
 
         $response = SendMessageRequest::execute($message, $recipient);
 
-        self::interpretResponse($response->getBody());
+        return self::interpretResponse($response->getBody());
     }
 
     /**
@@ -84,7 +84,7 @@ class EkoSmsChannel
         }
 
         if (!isset($data['amount'])) {
-            throw new CouldNotSendNotification('Unable to parse the response.');
+            throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Unable to parse the response.');
         }
 
         return (int) $data['amount'];
@@ -94,7 +94,7 @@ class EkoSmsChannel
      * @throws Exception
      * @throws CouldNotSendNotification
      */
-    private static function interpretResponse(StreamInterface $getBody): void
+    private static function interpretResponse(StreamInterface $getBody): array
     {
         $response = json_decode(
             $getBody->getContents(),
@@ -108,19 +108,20 @@ class EkoSmsChannel
         }
 
         if (!isset($response['results'])) {
-            throw new CouldNotSendNotification('Unable to parse the response.');
+            throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Unable to parse the response.');
         }
 
         $results = $response['results'];
 
-        self::respond($results);
+        return self::respond($results);
     }
 
     /**
      * @param array $results
+     * @return array
      * @throws CouldNotSendNotification
      */
-    private static function respond(array $results): void
+    private static function respond(array $results): array
     {
         foreach ($results as $result) {
             $errorCode = (int)$result['code'];
@@ -132,23 +133,25 @@ class EkoSmsChannel
             switch ($errorCode) {
                 case -1:
                 case 1001:
-                    throw new CouldNotSendNotification('Not authenticated.');
+                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Not authenticated.');
                 case -2:
                 case -3:
-                    throw new CouldNotSendNotification('Invalid phone number or operator.');
+                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Invalid phone number or operator.');
                 case -4:
-                    throw new CouldNotSendNotification('Unsupported destination country.');
+                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Unsupported destination country.');
                 case -8:
-                    throw new CouldNotSendNotification('Data coding scheme invalid.');
+                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Data coding scheme invalid.');
                 case -9:
-                    throw new CouldNotSendNotification('Service ID not found.');
+                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Service ID not found.');
                 case -10:
-                    throw new CouldNotSendNotification('Message too long.');
+                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Message too long.');
                 case -11:
-                    throw new CouldNotSendNotification('Not enough balance.');
+                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Not enough balance.');
                 default:
-                    throw new CouldNotSendNotification('Error occurred.');
+                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Error occurred.');
             }
         }
+
+        return $results;
     }
 }
