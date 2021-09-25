@@ -1,77 +1,99 @@
-Please see [this repo](https://github.com/laravel-notification-channels/channels) for instructions on how to submit a channel proposal.
+<p align="center"><img src="https://api-public.ekotech.cm/assets/images/logo.png" alt="logo"></p>
 
-# A Boilerplate repo for contributions
+<p align="center">
+<a href="https://packagist.org/packages/undjike/ekosms-laravel-notification-channel"><img src="https://poser.pugx.org/undjike/ekosms-laravel-notification-channel/v/stable.svg" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/undjike/ekosms-laravel-notification-channel"><img src="https://poser.pugx.org/undjike/ekosms-laravel-notification-channel/license.svg" alt="License"></a>
+<a href="https://packagist.org/packages/undjike/ekosms-laravel-notification-channel"><img src="https://poser.pugx.org/undjike/ekosms-laravel-notification-channel/d/total.svg" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/undjike/ekosms-laravel-notification-channel"><img src="https://poser.pugx.org/undjike/ekosms-laravel-notification-channel/dependents.svg" alt="Dependents"></a>
+</p>
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/laravel-notification-channels/:package_name.svg?style=flat-square)](https://packagist.org/packages/laravel-notification-channels/:package_name)
-[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
-[![Build Status](https://img.shields.io/travis/laravel-notification-channels/:package_name/master.svg?style=flat-square)](https://travis-ci.org/laravel-notification-channels/:package_name)
-[![StyleCI](https://styleci.io/repos/:style_ci_id/shield)](https://styleci.io/repos/:style_ci_id)
-[![SensioLabsInsight](https://img.shields.io/sensiolabs/i/:sensio_labs_id.svg?style=flat-square)](https://insight.sensiolabs.com/projects/:sensio_labs_id)
-[![Quality Score](https://img.shields.io/scrutinizer/g/laravel-notification-channels/:package_name.svg?style=flat-square)](https://scrutinizer-ci.com/g/laravel-notification-channels/:package_name)
-[![Code Coverage](https://img.shields.io/scrutinizer/coverage/g/laravel-notification-channels/:package_name/master.svg?style=flat-square)](https://scrutinizer-ci.com/g/laravel-notification-channels/:package_name/?branch=master)
-[![Total Downloads](https://img.shields.io/packagist/dt/laravel-notification-channels/:package_name.svg?style=flat-square)](https://packagist.org/packages/laravel-notification-channels/:package_name)
+## Introduction
 
-This package makes it easy to send notifications using [:service_name](link to service) with Laravel 5.5+, 6.x and 7.x
+This is a package for Laravel Applications which enables you to send notifications through EkoSMS Channel.
 
-**Note:** Replace ```:channel_namespace``` ```:service_name``` ```:author_name``` ```:author_username``` ```:author_website``` ```:author_email``` ```:package_name``` ```:package_description``` ```:style_ci_id``` ```:sensio_labs_id``` with their correct values in [README.md](README.md), [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md), [LICENSE.md](LICENSE.md), [composer.json](composer.json) and other files, then delete this line.
-**Tip:** Use "Find in Path/Files" in your code editor to find these keywords within the package directory and replace all occurences with your specified term.
-
-This is where your description should go. Add a little code example so build can understand real quick how the package can be used. Try and limit it to a paragraph or two.
-
-
-
-## Contents
-
-- [Installation](#installation)
-	- [Setting up the :service_name service](#setting-up-the-:service_name-service)
-- [Usage](#usage)
-	- [Available Message methods](#available-message-methods)
-- [Changelog](#changelog)
-- [Testing](#testing)
-- [Security](#security)
-- [Contributing](#contributing)
-- [Credits](#credits)
-- [License](#license)
-
+The package uses <a href="https://api-public.ekotech.cm/documentation/">EkoSms Service</a> to perform SMS dispatching.
 
 ## Installation
 
-Please also include the steps for any third-party service setup that's required for this package.
+This package can be installed via composer. Just type :
 
-### Setting up the :service_name service
-
-Optionally include a few steps how users can set up the service.
+```bash
+composer require undjike/ekosms-laravel-notification-channel
+```
 
 ## Usage
 
-Some code examples, make it clear how to use the package
+After installation, configure your services in `congig/services.php` by adding :
 
-### Available Message methods
+```php
+<?php
 
-A list of all available options
+return [
+    //...
 
-## Changelog
-
-Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
-
-## Testing
-
-``` bash
-$ composer test
+    'ekosms' => [
+        'username' => env('EKOSMS_USERNAME'), // You can type in directly your credentials 
+        'password' => env('EKOSMS_PASSWORD')
+    ],
+];
 ```
 
-## Security
+Once this is done, you can create your notification as usual.
 
-If you discover any security related issues, please email :author_email instead of using the issue tracker.
+```php
+<?php
 
-## Contributing
+namespace App\Notifications;
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+use Illuminate\Notifications\Notification;
+use Undjike\EkoSmsNotificationChannel\EkoSmsChannel;
+use Undjike\EkoSmsNotificationChannel\EkoSmsMessage;
 
-## Credits
+class EkoSmsNotification extends Notification
+{
+    /**
+     * Get the notification's delivery channels.
+     *
+     * @param  mixed  $notifiable
+     * @return array
+     */
+    public function via($notifiable)
+    {
+        return [EkoSmsChannel::class]; // or return 'ekosms';
+    }
 
-- [:author_name](https://github.com/:author_username)
-- [All Contributors](../../contributors)
+    /**
+     * @param $notifiable
+     * @return mixed
+     */
+    public function toEkoSms($notifiable)
+    {
+        return EkoSmsMessage::create()
+            ->body('Type here you message content...')
+            ->sender('Brand name');
+        // or return 'Type here you message content...';
+    }
+}
+
+```
+
+To get this stuff completely working, you need to add this
+to your notifiable model.
+
+
+```php
+    /**
+     * Attribute to use when addressing EkoSMS notification
+     *
+     * @returns string|array
+     */
+    public function routeNotificationForEkoSms()
+    {
+        return $this->phone_number; // Can be a string or an array of valid phone numbers
+    }
+```
+
+Enjoy !!!
 
 ## License
 
