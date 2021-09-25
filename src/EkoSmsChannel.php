@@ -103,17 +103,17 @@ class EkoSmsChannel
             JSON_THROW_ON_ERROR
         );
 
-        if (isset($response['code'])) {
-            self::respond([$response]);
+        $resultsSet = data_get($response, 'data.results') ?? data_get($response, 'results');
+
+        if (!isset($resultsSet) && isset($response['code'])) {
+            return self::respond([$response]);
         }
 
-        if (!isset($response['results'])) {
+        if (!isset($resultsSet)) {
             throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Unable to parse the response.');
         }
 
-        $results = $response['results'];
-
-        return self::respond($results);
+        return self::respond($resultsSet);
     }
 
     /**

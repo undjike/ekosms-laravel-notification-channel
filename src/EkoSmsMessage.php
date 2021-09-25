@@ -16,7 +16,7 @@ class EkoSmsMessage
      *
      * @var string
      */
-    protected string $brand;
+    protected string $brand = 'GooClean';
 
     /**
      * Encoding of the message
@@ -38,7 +38,7 @@ class EkoSmsMessage
      *
      * @var string
      */
-    protected string $remoteId;
+    protected string $remoteId = '';
 
     /**
      * EkoSmsMessage constructor.

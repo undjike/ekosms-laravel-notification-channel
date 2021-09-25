@@ -32,6 +32,6 @@ class SendMessageRequest
             'allowunicode' => $message->unicodeAllowed()
         ];
 
-        return $client->post('/messages', ['body' => $data]);
+        return $client->post('/messages', ['form_params' => $data]);
     }
 }
