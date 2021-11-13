@@ -5,6 +5,7 @@ namespace Undjike\EkoSmsNotificationChannel;
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Arr;
 use Psr\Http\Message\StreamInterface;
 use Undjike\EkoSmsNotificationChannel\Exceptions\CouldNotSendNotification;
 use Undjike\EkoSmsNotificationChannel\Requests\GetBalanceRequest;
@@ -103,7 +104,7 @@ class EkoSmsChannel
             JSON_THROW_ON_ERROR
         );
 
-        $resultsSet = data_get($response, 'data.results') ?? data_get($response, 'results');
+        $resultsSet = self::getResultsSet($response);
 
         if (!isset($resultsSet) && isset($response['code'])) {
             return self::respond([$response]);
@@ -117,6 +118,35 @@ class EkoSmsChannel
     }
 
     /**
+     * @param $response
+     * @return array|mixed
+     */
+    private static function getResultsSet($response)
+    {
+        if (function_exists('config') && $resultsSetKeysCheck = config('services.ekosms.results')) {
+            $resultsSetKeysCheck = Arr::wrap($resultsSetKeysCheck);
+
+            foreach ($resultsSetKeysCheck as $resultsSetKey) {
+                if ($results = data_get($response, $resultsSetKey)) {
+                    return $results;
+                }
+            }
+        }
+
+        if ($results = data_get($response, 'data.results'))
+        {
+            return $results;
+        }
+
+        if ($results = data_get($response, 'data'))
+        {
+            return $results;
+        }
+
+        return data_get($response, 'results');
+    }
+
+    /**
      * @param array $results
      * @return array
      * @throws CouldNotSendNotification
@@ -124,7 +154,7 @@ class EkoSmsChannel
     private static function respond(array $results): array
     {
         foreach ($results as $result) {
-            $errorCode = (int)$result['code'];
+            $errorCode = (int) $result['code'];
 
             if ($errorCode === 0) {
                 continue;
@@ -148,7 +178,7 @@ class EkoSmsChannel
                 case -11:
                     throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Not enough balance.');
                 default:
-                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Error occurred.');
+                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError("Error #$errorCode occurred.");
             }
         }
 
