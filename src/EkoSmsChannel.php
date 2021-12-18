@@ -47,10 +47,6 @@ class EkoSmsChannel
             throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Can\'t send a message with an empty body.');
         }
 
-        if (!$recipient) {
-            throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Can\'t send a message with no recipient.');
-        }
-
         if (is_string($recipient)) {
             $recipient = [$recipient];
         }
@@ -176,9 +172,10 @@ class EkoSmsChannel
                 case -10:
                     throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Message too long.');
                 case -11:
+                case 1008:
                     throw CouldNotSendNotification::ekoSmsRespondedWithAnError('Not enough balance.');
                 default:
-                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError("Error #$errorCode occurred.");
+                    throw CouldNotSendNotification::ekoSmsRespondedWithAnError("Error #$errorCode occurred." . json_encode($results));
             }
         }
 
